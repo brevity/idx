@@ -4,7 +4,7 @@
   "homepage": "",
   "author": "Andrew Toelle <andrew.toelle@gmail.com> (http://github.com/brevity)",
   "version": "0.0.1",
-  "git": "",
+  "git": "http://github.com/brevity/idx.git",
   "packages": {
     "reactive-table": {}
   }
