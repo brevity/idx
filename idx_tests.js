@@ -30,5 +30,13 @@ Tinytest.add('idx:graphs - edges', function (test) {
   test.equal(testProto.edges.length, 3, "<-- check that all vertices are added");
 });
 
+for (var i = 0; i < 5; i++){
+  TestCollection.insert({n1:'something' + 1});
+}
+
+Tinytest.add('idx:instances - insertion', function (test) {
+  test.equal( TestCollection._graph.instances.length, 5, "collection.insert() should trigger the creation of a graph instance stored in _graph.instances");
+  test.equal(testProto.edges.length, 3, "<-- check that all vertices are added");
+});
 
 console.log("<--------- ");

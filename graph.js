@@ -1,5 +1,6 @@
-idx.graph = function Graph(collection){
+function Graph(collection){
   this.collection = collection;
+  this.instances = [];
   this.name = function name(){return this.collection._name;};
   this.vertices = [];
   this.edges = [];
@@ -27,4 +28,16 @@ idx.graph = function Graph(collection){
     }
   this.edges.push(edge);
   };
-};
+  this.init = function inti(collection, doc){
+    var instance = Object.create(this);
+    instance._id = doc._id;
+    instance._collection = collection;
+    instance.graph = new Graph();
+    instance.latestReport = {};
+    //instance.prepGraph(doc);
+    this.instances.push(instance);
+    return instance;
+  };
+}
+
+idx.Graph = Graph;
