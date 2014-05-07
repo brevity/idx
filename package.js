@@ -3,10 +3,9 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
-  //api.imply('reactive-table');
   api.export('idx');
-  api.add_files('idx.js', ['server']);
   api.add_files('graph.js', ['server']);
+  api.add_files('idx.js', ['server']);
 });
 
 Package.on_test(function (api) {
