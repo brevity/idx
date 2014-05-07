@@ -1,16 +1,18 @@
 function Idx(){
   this.graphs = {};
+  this.instances = {};
   this.createGraph = function(collection){
-    var graph = this.graphs[collection._name] = new this.Graph(collection);
-    collection._graph = graph;
+    var name = collection._name;
+    this.instances[name] = {};
+    var graph = this.graphs[name] = new this.Graph(collection);
 
     collection.after.insert(function(userId, doc){
-      collection._graph.init(collection, doc);
+      idx.graphs[name].init(collection, doc);
     });
-    collection.after.update(function(userId, doc, fieldNames, modifier, options){
+    collection.before.update(function(userId, doc, fieldNames, modifier, options){
       if(doc.scrape){
         console.log('Noticed an update!');
-        collection._graph.scrape(collection, doc);
+        idx.graphs[name].scrape(collection, doc);
       }
     });
 
