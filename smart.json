@@ -1,0 +1,11 @@
+{
+  "name": "idx",
+  "description": "idx provides a mechanism for describing meteor collection items via a graph of self-resolving nodes.",
+  "homepage": "",
+  "author": "Andrew Toelle <andrew.toelle@gmail.com> (http://github.com/brevity)",
+  "version": "0.0.1",
+  "git": "",
+  "packages": {
+    "reactive-table": {}
+  }
+}
