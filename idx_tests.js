@@ -4,39 +4,70 @@ Tinytest.add('idx:graphs - idx', function (test) {
   test.equal(typeof idx, 'object', 'Expected values to be equali');
 });
 
-var TestCollection = new Meteor.Collection('test');
-var testProto = idx.createGraph(TestCollection);
+Articles = new Meteor.Collection("articles");
+var articleProto = idx.createGraph(Articles);
 
 Tinytest.add('idx:graphs - collection connection', function(test){
-  test.equal(TestCollection._graph.name(), 'test', 'Collections should have a _graph property');
-  test.equal(idx.graphs.test.name(), 'test', 'idx contains a link to the new graph as well');
-  test.equal(testProto.name(), 'test', "<--- idx.createGraph should return the new graph instance");
+  test.equal(idx.graphs.articles.name(), 'articles', 'idx contains a link to the new graph as well');
+  test.equal(articleProto.name(), 'articles', "<--- idx.createGraph should return the new graph instance");
 });
 
-testProto.addVertex({name:'n1', status:true});
-testProto.addVertices([{name:'n2'}, {name:'n3'}]);
+articleProto.addVertex({ name:'pii' });
+articleProto.addVertices([
+  { name:'doi' },
+  { name:'author id', status:true },
+  { name:'last name', status: true },
+  { name:'first name', status: true }
+]);
 
 Tinytest.add('idx:graphs - vertices', function (test) {
-  test.equal(testProto.vertices[0].name, 'n1', "<---vertices can be added to the graph with addVertex(options)");
-  test.equal(testProto.vertices.length, 3, "<-- check that all vertices are added");
-  test.isTrue(testProto.vertices instanceof Array, "<---graphs should have a verticies array");
+  test.equal(articleProto.vertices[0].name, 'pii', "<---vertices can be added to the graph with addVertex(options)");
+  test.equal(articleProto.vertices.length, 5, "<-- check that all vertices are added");
+  test.isTrue(articleProto.vertices instanceof Array, "<---graphs should have a verticies array");
 });
 
-testProto.addEdge({start:'n1', end:'n2'});
-testProto.addEdges([{start:'n2', end:'n3'}, {start:'n3', end:'n1'}]);
+articleProto.addEdge({
+  start:'author info',
+  end: 'last name',
+  type: 'local',
+  resolution: function titleFromPublisherJson(start){return start.last_name;}
+});
+
+articleProto.addEdge({
+  start:'author info',
+  end: 'author id',
+  type: 'local',
+  resolution: function titleFromPublisherJson(start){return start.id;}
+});
+articleProto.addEdge({
+  start:'author info',
+  end: 'first name',
+  type: 'local',
+  resolution: function titleFromPublisherJson(start){
+    return start.first_name;
+  }
+});
+articleProto.addEdge({
+  start: 'pii',
+  end: 'author info',
+  type: 'json',
+  url: 'https://www.landesbioscience.com/api/articles/get_article_json/[start]',
+  resolution: function publisherJsonFromPii(json){
+    return json.authors_hash[0];
+  }
+});
 
 Tinytest.add('idx:graphs - edges', function (test) {
-  test.isTrue(testProto.edges instanceof Array, "<---graphs should have a verticies array");
-  test.equal(testProto.edges.length, 3, "<-- check that all vertices are added");
+  test.isTrue(articleProto.edges instanceof Array, "<---graphs should have a verticies array");
+  test.equal(articleProto.edges.length, 4, "<-- check that all edges are added");
 });
 
 for (var i = 0; i < 5; i++){
-  TestCollection.insert({n1:'something' + 1});
+  Articles.insert({pii:1000 + i});
 }
 
 Tinytest.add('idx:instances - insertion', function (test) {
-  test.equal( TestCollection._graph.instances.length, 5, "collection.insert() should trigger the creation of a graph instance stored in _graph.instances");
-  test.equal(testProto.edges.length, 3, "<-- check that all vertices are added");
+  test.equal( Object.keys(idx.instances.articles).length, 5, "collection.insert() should trigger the creation of a graph instance stored in _graph.instances");
 });
-
 console.log("<--------- ");
+
