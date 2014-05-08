@@ -15,9 +15,10 @@ Tinytest.add('idx:graphs - collection connection', function(test){
 articleProto.addVertex({ name:'pii' });
 articleProto.addVertices([
   { name:'doi' },
-  { name:'author id', status:true },
-  { name:'last name', status: true },
-  { name:'first name', status: true }
+  { name:'pii plus 1', status:true },
+  { name:'article info'},
+  { name:'title', status: true },
+  { name:'publish date', status: true }
 ]);
 
 Tinytest.add('idx:graphs - vertices', function (test) {
@@ -27,33 +28,40 @@ Tinytest.add('idx:graphs - vertices', function (test) {
 });
 
 articleProto.addEdge({
-  start:'author info',
-  end: 'last name',
+  start:'pii',
+  end: 'pii plus 1',
   type: 'local',
-  resolution: function titleFromPublisherJson(start){return start.last_name;}
+  resolve: function piiPlus1FromPii(start){return 1 + start;}
 });
 
 articleProto.addEdge({
   start:'author info',
-  end: 'author id',
+  end: 'last name',
   type: 'local',
-  resolution: function titleFromPublisherJson(start){return start.id;}
+  resolve: function titleFromPublisherJson(start){return start.last_name;}
+});
+
+articleProto.addEdge({
+  start:'article info',
+  end: 'publish date',
+  type: 'local',
+  resolve: function titleFromPublisherJson(start){return start.pubdate_pretty;}
 });
 articleProto.addEdge({
-  start:'author info',
-  end: 'first name',
+  start:'article info',
+  end: 'title',
   type: 'local',
-  resolution: function titleFromPublisherJson(start){
-    return start.first_name;
+  resolve: function titleFromPublisherJson(start){
+    return start.title;
   }
 });
 articleProto.addEdge({
   start: 'pii',
-  end: 'author info',
+  end: 'article info',
   type: 'json',
   url: 'https://www.landesbioscience.com/api/articles/get_article_json/[start]',
-  resolution: function publisherJsonFromPii(json){
-    return json.authors_hash[0];
+  resolve: function articleInfoFromPii(json){
+    return json;
   }
 });
 
