@@ -3,7 +3,8 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
-  api.use('collection-hooks');
+  api.use(['collection-hooks']);
+  api.use(['emitter']);
   api.use('http');
   api.export('idx');
   api.add_files('idx.js', ['server']);

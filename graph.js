@@ -1,8 +1,67 @@
-var Fiber = Npm.require('fibers');
+var Fiber = Npm.require('fibers'),
+    util = Npm.require('util');
+
 function Progress(){
   this.known = [];
   this.processing = {};
 }
+
+function Vertex(options){
+  EventEmitter.call(this);
+  for (var option in options){
+    this[option] = options[option];
+  }
+}
+util.inherits(Vertex, EventEmitter);
+Vertex.prototype.setMaxListeners(30);
+
+Vertex.prototype.known = function known(){
+  var vertex = this;
+  this.emit('known', {name:vertex.name, value:vertex.value});
+};
+
+Vertex.prototype.prep = function prep(graph){
+  var vertex = this;
+
+  if(typeof graph.edges !== 'object'){
+    graph.edges = Object.create(null);
+  }
+
+  _.map(graph.Edges, function createEdgeInstances(edge, key){
+
+    if(edge.end == vertex.name){
+      var start = graph.vertices[edge.start],
+          end = vertex.name;
+
+      var edges = graph.edges;
+
+      if(typeof edges[end] !== 'object'){
+        edges[end] = Object.create(null);
+      }
+      edges[end][start] = function bindEdgeListeners(msg){
+        // console.log("resolving", end, "from", start );
+
+          var listeners = edges[end];
+          for (var listener in listeners){
+            start.removeListener('known', listeners[listener]);
+          }
+          delete edges[end];
+          //Fiber(function goWalking(){
+            graph.walk(edge);
+          //}).run();
+          vertex.emit();
+          graph.followUp();
+      };
+      start.once("known", edges[end][start]);
+    }
+  });
+};
+
+Vertex.prototype.set = function set(value){
+  var vertex = this;
+  vertex.value = value;
+  vertex.known();
+};
 
 function Graph(collection){
   this.collection = collection;
@@ -10,44 +69,40 @@ function Graph(collection){
   this.inProcess = {};
   this.stepForward = {};
   this.name = function name(){return this.collection._name;};
-  this.vertices = [];
+  this.Vertices = {};
   this.stats = [];
   this.immutables = [];
   this.todo = [];
-  this.edges = [];
-  this.addVertices = function(vertices){
+  this.Edges = [];
+  this.addVertices = function addVertices(vertices){
     for (var vertex in vertices){
       this.addVertex(vertices[vertex]);
     }
   };
 }
 Graph.prototype.prepGraph = function prepGraph(doc){
-  this.queue = {};
-  this.connected = {};
-  this.values = {};
-  for(var prop in doc){
-      this.values[prop] = doc[prop];
-      this.setConnected(prop);
-  }
-  this.resolveAll();
+  var graph = this,
+      known = [];
+  graph._id = doc._id;
+  graph.vertices = {};
+  
+  _.map(graph.Vertices, function createVerticesInstances(key, val){
+      var Vertex = graph.Vertices[val],
+          vertex = Object.create(Vertex);
+      graph.vertices[val] = vertex;
+    });
+  _.map(graph.Vertices, function prepVerticesInstances(key, val){
+      graph.vertices[val].prep(graph);
+    });
+  _.map(doc, function setVerticesInitialValues(val, key){
+    if(key !== '_id'){
+      graph.vertices[key].set(val);
+    }
+  });
+      //this.setConnected(prop);
+  //this.resolveAll();
 };
 
-Graph.prototype.setConnected = function setConnected(vertex){
-  for(var edge in this.edges){
-    if(Object.keys(idx.instances.articles).length < 1){
-    }
-    if(this.edges[edge].start == vertex){
-      var end = this.edges[edge].end;
-          connections = this.connected;
-      if (connections[end]){
-        connections[end].push(this.edges[edge]);
-      } else {
-        connections[end] = [];
-        connections[end].push(this.edges[edge]);
-      }
-    }
-  }
-};
 
 Graph.prototype.init = function init(collection, doc){
   var instance = Object.create(idx.graphs[collection._name]);
@@ -56,24 +111,23 @@ Graph.prototype.init = function init(collection, doc){
   instance.progress.latestReport = {};
   instance.prepGraph(doc);
   idx.instances[collection._name][doc._id] = instance;
-  return instance;
 };
+
+
 Graph.prototype.addVertex = function addVertex(options){
-  var vertex = {};
-  for (var option in options){
-    vertex[option] = options[option];
-  }
-  this.vertices.push(vertex);
+  var graph = this,
+      vertex = new Vertex(options);
+  graph.Vertices[vertex.name] = vertex;
   if (vertex.status){
-    this.stats.push(vertex.name);
+    graph.stats.push(vertex.name);
   }
   if(vertex.immutable){
-    this.immutables.push(vertex.name);
+    graph.immutables.push(vertex.name);
   }
 };
-Graph.prototype.addEdges = function(edges){
-  for (var edge in edges){
-    this.addEdge(edges[edge]);
+Graph.prototype.addEdges = function addEdges(Edges){
+  for (var edge in Edges){
+    this.addEdge(Edges[edge]);
   }
 };
 Graph.prototype.addEdge = function addEdge(options){
@@ -81,131 +135,89 @@ Graph.prototype.addEdge = function addEdge(options){
   for (var option in options){
     edge[option] = options[option];
   }
-  this.edges.push(edge);
+  this.Edges.push(edge);
 };
-Graph.prototype.updateDB = function updateDB(){
+
+Graph.prototype.updateDB = function updateDB(vertex){
   graph = this;
-  var done = false;
-  var known = Object.keys(graph.values);
-  var count = 0;
-  for (var i = 0; i < graph.todo.length; i++){
-    if (known.indexOf(graph.todo[i]) !== -1){
-      count++;
-    }
-  }
-  if(graph.todo.length == count){
-    //prepare update object..  push onto reports
-    var insertObj = {};
-    insertObj.reports = [];
-    var report = {};
-    for (var val in graph.values){
-      if(graph.stats.indexOf(val) !== -1){
-        report[val] = graph.values[val];
-      } 
-      if(graph.immutables.indexOf(val) !== -1){
-        insertObj[val] = graph.values[val];
+  if(graph.stats.indexOf(vertex) !== -1){
+    var known = Object.keys(graph.vertices);
+    var count = 0;
+    for (var i = 0; i < graph.stats.length; i++){
+      if (known.indexOf(graph.stats[i]) !== -1){
+        count++;
       }
     }
-    report.stamp = new Date();
-    insertObj.reports.push(report);
-    Fiber(function(){
-      graph.collection.update(graph.values._id, insertObj);
-    }).run();
-  }else {
+    //AJT
+    if(graph.stats.length == count){
+      var reportsMod = {$push:{reports:{}}};
+      var report = {};
+      for (var val in graph.vertices){
+        if(graph.stats.indexOf(val) !== -1){
+          report[val] = graph.vertices[val].value;
+        } 
+      }
+      report.stamp = new Date();
+      reportsMod.$push.reports = report;
+      Fiber(function updateReport(){
+        graph.collection.update(graph._id, reportsMod);
+        // console.log("updating DB with ", vertex);
+        // console.log("[DBWRITE] -", val);
+      }).run();
+    }
   }
+    // console.log("It's immutable.. writing..", vertex, graph.immutables);
+    if(graph.immutables.indexOf(vertex) !== -1){
+      var keyMod = {$set:{}}; 
+      keyMod.$set[vertex] = graph.vertices[vertex].value;
+      Fiber(function updateImmutable(){
+        // console.log("[DBWRITE] -", vertex);
+        graph.collection.update(graph._id, keyMod);
+      }).run();
+    }
+};
+Graph.prototype.walkJSON = function walkJSON(edge){
+    var token = new RegExp("\\[start\\]");
+    if(graph.vertices[edge.start].value === null){return {error:"not connected"};}
+    var url = edge.url.replace(token, graph.vertices[edge.start].value);
+    var json;
+    try{
+      json = JSON.parse(HTTP.get(url).content);
+    } catch(e){
+      //console.log("error finding", edge.end, ":", e.stack);
+      console.log("error with json", json);
+      return {error:"http:" + e.response.statusCode};
+    }
+    try{
+      var resolution = edge.resolve(json);
+      return resolution;
+    } catch (e) {
+      console.log("error finding", edge.end, ":", e.message);
+      return {error:e};
+    }
+    //var res = "wish this would work!";
 };
 
 Graph.prototype.walk = function walk(edge){
-  graph = this;
-  if(edge.type == 'local'){
-    graph.values[edge.end] = edge.resolve(graph.values[edge.start]);
-  } else if(edge.type == 'json') {
-    var token = new RegExp("\\[start\\]");
-    var url = edge.url.replace(token, graph.values[edge.start]);
-    var res = edge.resolve(JSON.parse(HTTP.get(url).content));
-    //console.log("json--->", res);
-    graph.values[edge.end] = res;
-  }
-    graph.updateDB();
-    graph.setConnected(edge.end);
-    delete graph.progress.processing[edge.end];
-    var nextVertices = graph.stepForward[edge.end];
-    //this.resolveOne(graph.stepForward[edge.end]);
-};
-
-
-Graph.prototype.stepBack = function stepBack(edge){
-  var graph = this;
-  if(!graph.progress.processing[edge.end]){
-    graph.progress.processing[edge.end] = true;
-    //console.log("[stepBack]-------------->", edge.end, "<---", edge.start);
-    graph.walk(edge);
-    //console.log(graph.values);
-  } else {
-    var interval = setInterval(function(){
-      if(graph.values[edge.end] !== undefined){
-      clearInterval(interval);
-      //console.log("There it is!.", graph.values);
-      return graph.values[edge.end];
-      }
-     // console.log("somebody else is looking for", edge.end, ". Wait till they find it.", graph.values);
-     //console.log(graph.inProcess);
-      
-    },7000);
-  }
-};
-Graph.prototype.waitForConnection = function waitForConnection(vertex){
-  var graph = this;
-    var interval = setInterval(function(){
-      if(graph.connected[vertex]){
-        graph.resolveOne(vertex);
-        clearInterval(interval);
-      } else{
-        console.log(".", vertex);
-      }
-    }, 7000);
-};
-Graph.prototype.connect = function connect(vertex){
   var graph = this,
-      connectionCount = 0;
-  for (var edge in this.edges){
-    var end = this.edges[edge].end;
-    if(end == vertex){
-      connectionCount++;
-      var start = this.edges[edge].start;
-      //Maybe this is where we return our future and wait?
-//      var next = graph.connected[vertex][0];
-//      if(!graph.stepForward[next.end]){
-//        graph.stepForward[next.end] = [];
-//      }
-//      graph.stepForward[next.end].push(vertex);
-      graph.waitForConnection(vertex);
-      graph.resolveOne(start);
-    }
+      resolution;
+
+  if(edge.type == 'local'){
+    resolution = edge.resolve(graph.vertices[edge.start].value);
+  } else if(edge.type == 'json') {
+    resolution = graph.walkJSON(edge);
   }
-  if(connectionCount === 0){
-    graph.values[vertex] = "Error: This node is unreachable. Create an edge with " + vertex + " as the endpoint.";
-    graph.updateDB();
+  if(resolution === undefined){
+   resolution = "Not able to resolve";
   }
+  graph.vertices[edge.end].set(resolution);
+  graph.updateDB(edge.end);
+  // graph.setConnected(edge.end);
+  delete graph.progress.processing[edge.end];
+  var nextVertices = graph.stepForward[edge.end];
 };
 
-Graph.prototype.resolveOne = function resolveOne(vertex){
-  var graph = this;
-  var resolved = graph.values[vertex];
-  if(resolved !== undefined){return resolved;}
-  if(graph.connected[vertex] !== undefined){
-    graph.stepBack(graph.connected[vertex][0]);
-    //Got some async headed our way here... might want to bone up on futures again :-(
-  } else {
-    // line up a future to recall this function after a connected node can be resolved.
-    graph.connect(vertex);
-    }
+Graph.prototype.followUp = function followUp(){
 };
-Graph.prototype.resolveAll = function resolveAll(){
-  var todo = this.todo = _.union(this.stats, this.immutables);
-  console.log(todo);
-  for (var vertex in todo){
-    this.resolveOne(todo[vertex]);
-  }
-};
+
 idx.Graph = Graph;

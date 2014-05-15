@@ -2,6 +2,7 @@ function Idx(){
   this.graphs = {};
   this.instances = {};
   this.createGraph = function(collection){
+    console.log("------------------------------------------------------------------------------------------------------------------------------------");
     var name = collection._name;
     this.instances[name] = {};
     var graph = this.graphs[name] = new this.Graph(collection);
@@ -15,7 +16,6 @@ function Idx(){
         idx.graphs[name].scrape(collection, doc);
       }
     });
-
     return graph;
   };
 }

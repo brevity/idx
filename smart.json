@@ -7,6 +7,7 @@
   "git": "http://github.com/brevity/idx.git",
   "packages": {
     "reactive-table": {},
-    "collection-hooks": {}
+    "collection-hooks": {},
+    "emitter": {}
   }
 }
