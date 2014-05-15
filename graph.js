@@ -28,28 +28,22 @@ Vertex.prototype.prep = function prep(graph){
   }
 
   _.map(graph.Edges, function createEdgeInstances(edge, key){
-
     if(edge.end == vertex.name){
       var start = graph.vertices[edge.start],
-          end = vertex.name;
-
-      var edges = graph.edges;
+          end = vertex.name,
+          edges = graph.edges;
 
       if(typeof edges[end] !== 'object'){
         edges[end] = Object.create(null);
       }
-      edges[end][start] = function bindEdgeListeners(msg){
-        // console.log("resolving", end, "from", start );
 
+      edges[end][start] = function bindEdgeListeners(msg){
           var listeners = edges[end];
           for (var listener in listeners){
             start.removeListener('known', listeners[listener]);
           }
           delete edges[end];
-          //Fiber(function goWalking(){
-            graph.walk(edge);
-          //}).run();
-          vertex.emit();
+          graph.walk(edge);
           graph.followUp();
       };
       start.once("known", edges[end][start]);
@@ -60,7 +54,8 @@ Vertex.prototype.prep = function prep(graph){
 Vertex.prototype.set = function set(value){
   var vertex = this;
   vertex.value = value;
-  vertex.known();
+  console.log(value);
+    vertex.known();
 };
 
 function Graph(collection){
@@ -148,7 +143,6 @@ Graph.prototype.updateDB = function updateDB(vertex){
         count++;
       }
     }
-    //AJT
     if(graph.stats.length == count){
       var reportsMod = {$push:{reports:{}}};
       var report = {};
@@ -177,6 +171,7 @@ Graph.prototype.updateDB = function updateDB(vertex){
     }
 };
 Graph.prototype.walkJSON = function walkJSON(edge){
+  var graph = this;
     var token = new RegExp("\\[start\\]");
     if(graph.vertices[edge.start].value === null){return {error:"not connected"};}
     var url = edge.url.replace(token, graph.vertices[edge.start].value);
@@ -198,23 +193,36 @@ Graph.prototype.walkJSON = function walkJSON(edge){
     //var res = "wish this would work!";
 };
 
+Graph.prototype.walkLocal = function walkLocal(edge){
+  var graph = this,
+      resolution = edge.resolve(graph.vertices[edge.start].value);
+  if(resolution === undefined || resolution === null){
+    var errMsg = "Error while resolving" + edge.end + "with" + edge.start;
+    return {error:errMsg};
+  } else {
+    return resolution;
+  }
+};
+
 Graph.prototype.walk = function walk(edge){
   var graph = this,
       resolution;
 
   if(edge.type == 'local'){
-    resolution = edge.resolve(graph.vertices[edge.start].value);
+    resolution = graph.walkLocal(edge);
   } else if(edge.type == 'json') {
     resolution = graph.walkJSON(edge);
   }
   if(resolution === undefined){
    resolution = "Not able to resolve";
   }
-  graph.vertices[edge.end].set(resolution);
-  graph.updateDB(edge.end);
+  if(resolution.error === undefined){
+    graph.vertices[edge.end].set(resolution);
+    graph.updateDB(edge.end);
+    delete graph.progress.processing[edge.end];
+  }
   // graph.setConnected(edge.end);
-  delete graph.progress.processing[edge.end];
-  var nextVertices = graph.stepForward[edge.end];
+  //var nextVertices = graph.stepForward[edge.end];
 };
 
 Graph.prototype.followUp = function followUp(){

@@ -1,5 +1,5 @@
-// Graph description. This is where we define the info we want to collect about each collection item
-// This stuff will occur in code requireing the module.
+// Graph description. This is where we define the info we want to discover about each collection item
+// This stuff will occur in code requiring the module.
 
 Articles = new Meteor.Collection("articles");
 
