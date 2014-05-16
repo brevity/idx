@@ -1,5 +1,6 @@
 var Fiber = Npm.require('fibers'),
-    util = Npm.require('util');
+    util = Npm.require('util'),
+    cheerio = Meteor.require('cheerio');
 
 function Progress(){
   this.known = [];
@@ -165,6 +166,41 @@ Graph.prototype.updateDB = function updateDB(vertex){
       }).run();
     }
 };
+
+Graph.prototype.walkXML = function walkXML(edge){
+  var graph = this;
+    var token = new RegExp("\\[start\\]");
+    if(graph.vertices[edge.start].value === null){return {error:"not connected"};}
+    var xml;
+    if(edge.url !== undefined){
+      var url = edge.url.replace(token, graph.vertices[edge.start].value);
+      try{
+        xml = HTTP.get(url).content;
+      } catch(e) {
+        var errmsg = "There was an error fetching " + url + " -" + edge.start + " -> " + edge.end;
+        console.log(errmsg);
+        return {error:e, message:errmsg};
+      }
+    } else {
+      xml = graph.vertices[edge.start].value;
+    }
+    try{
+      //$ = JQuery.parse(xml);
+      $ = cheerio.load(xml);
+    } catch(e){
+      return {error:"http:" + e.response.statusCode};
+    }
+    try{
+      var resolution = edge.resolve($);
+      return resolution;
+    } catch (e) {
+      var errmsg = "Fix your resolution function in the edge from " + edge.start + " to " + edge.end;
+      console.log(errmsg);
+      return {error:e, message:errmsg };
+    }
+    //var res = "wish this would work!";
+};
+
 Graph.prototype.walkJSON = function walkJSON(edge){
   var graph = this;
     var token = new RegExp("\\[start\\]");
@@ -201,7 +237,6 @@ Graph.prototype.walkLocal = function walkLocal(edge){
       try{
         resolution = edge.resolve(value);
       } catch(e) {
-        if(edge.end == 'doi'){ console.log(e);}
         var errmsg = "Fix your resolution function in the edge from " + edge.start + " to " + edge.end;
         console.log(errmsg);
         return {error:e, message:errmsg };
@@ -222,6 +257,8 @@ Graph.prototype.walk = function walk(edge){
     resolution = graph.walkLocal(edge);
   } else if(edge.type == 'json') {
     resolution = graph.walkJSON(edge);
+  } else if(edge.type == 'xml') {
+    resolution = graph.walkXML(edge);
   }
   if(resolution === undefined){
    resolution = "Not able to resolve";

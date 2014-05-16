@@ -8,6 +8,7 @@
   "packages": {
     "reactive-table": {},
     "collection-hooks": {},
-    "emitter": {}
+    "emitter": {},
+    "npm": {}
   }
 }
