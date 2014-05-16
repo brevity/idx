@@ -3,10 +3,12 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
+  api.use('underscore');
   api.use(['collection-hooks']);
   api.use(['emitter']);
   api.use('http');
   api.export('idx');
+  api.add_files(['_.deep.js','_.pluckDeep.js'], ['server']);
   api.add_files('idx.js', ['server']);
   api.add_files('graph.js', ['server']);
 });

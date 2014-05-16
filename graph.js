@@ -54,7 +54,6 @@ Vertex.prototype.prep = function prep(graph){
 Vertex.prototype.set = function set(value){
   var vertex = this;
   vertex.value = value;
-  console.log(value);
     vertex.known();
 };
 
@@ -155,17 +154,13 @@ Graph.prototype.updateDB = function updateDB(vertex){
       reportsMod.$push.reports = report;
       Fiber(function updateReport(){
         graph.collection.update(graph._id, reportsMod);
-        // console.log("updating DB with ", vertex);
-        // console.log("[DBWRITE] -", val);
       }).run();
     }
   }
-    // console.log("It's immutable.. writing..", vertex, graph.immutables);
     if(graph.immutables.indexOf(vertex) !== -1){
       var keyMod = {$set:{}}; 
       keyMod.$set[vertex] = graph.vertices[vertex].value;
       Fiber(function updateImmutable(){
-        // console.log("[DBWRITE] -", vertex);
         graph.collection.update(graph._id, keyMod);
       }).run();
     }
@@ -177,28 +172,43 @@ Graph.prototype.walkJSON = function walkJSON(edge){
     var url = edge.url.replace(token, graph.vertices[edge.start].value);
     var json;
     try{
-      json = JSON.parse(HTTP.get(url).content);
+      json = HTTP.get(url).content;
+    } catch(e) {
+      var errmsg = "There was an error fetching " + url + " -" + edge.start + " -> " + edge.end;
+      console.log(errmsg);
+      return {error:e, message:errmsg};
+    }
+    try{
+      json = JSON.parse(json);
     } catch(e){
-      //console.log("error finding", edge.end, ":", e.stack);
-      console.log("error with json", json);
       return {error:"http:" + e.response.statusCode};
     }
     try{
       var resolution = edge.resolve(json);
       return resolution;
     } catch (e) {
-      console.log("error finding", edge.end, ":", e.message);
-      return {error:e};
+      var errmsg = "Fix your resolution function in the edge from " + edge.start + " to " + edge.end;
+      console.log(errmsg);
+      return {error:e, message:errmsg };
     }
     //var res = "wish this would work!";
 };
 
 Graph.prototype.walkLocal = function walkLocal(edge){
   var graph = this,
-      resolution = edge.resolve(graph.vertices[edge.start].value);
+      value = graph.vertices[edge.start].value,
+      resolution;
+      try{
+        resolution = edge.resolve(value);
+      } catch(e) {
+        if(edge.end == 'doi'){ console.log(e);}
+        var errmsg = "Fix your resolution function in the edge from " + edge.start + " to " + edge.end;
+        console.log(errmsg);
+        return {error:e, message:errmsg };
+      }
   if(resolution === undefined || resolution === null){
-    var errMsg = "Error while resolving" + edge.end + "with" + edge.start;
-    return {error:errMsg};
+    var errmsg = "The resolution function of the edge from " + edge.start + " to " + edge.end + " is either yielding undefined or null";
+    return {error:true, message:errmsg};
   } else {
     return resolution;
   }
@@ -207,7 +217,7 @@ Graph.prototype.walkLocal = function walkLocal(edge){
 Graph.prototype.walk = function walk(edge){
   var graph = this,
       resolution;
-
+  if(graph.vertices[edge.start].value === undefined){return;}
   if(edge.type == 'local'){
     resolution = graph.walkLocal(edge);
   } else if(edge.type == 'json') {
