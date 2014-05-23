@@ -9,8 +9,10 @@ Package.on_use(function (api, where) {
   api.use('http');
   api.use('npm');
   api.export('idx');
+  api.export('graphs');
   api.add_files('idx.js', ['server']);
   api.add_files('graph.js', ['server']);
+  api.add_files('d3graph.js', ['client', 'server']);
 });
 //
 Package.on_test(function (api) {
