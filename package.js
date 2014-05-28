@@ -7,7 +7,6 @@ Package.on_use(function (api, where) {
   api.use(['collection-hooks']);
   api.use(['emitter']);
   api.use('http');
-  api.use('npm');
   api.export('idx');
   api.export('graphs');
   api.add_files('idx.js', ['server']);
