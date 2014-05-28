@@ -20,3 +20,7 @@ Package.on_test(function (api) {
   api.add_files(['idx_tests.js'], ['server']);
 
 });
+
+Npm.depends({
+  "cheerio":"0.16.0"
+});

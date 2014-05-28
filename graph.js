@@ -1,6 +1,6 @@
 var Fiber = Npm.require('fibers'),
     util = Npm.require('util'),
-    cheerio = Meteor.require('cheerio');
+    cheerio = Npm.require('cheerio');
 
 function Progress(){
   this.known = [];

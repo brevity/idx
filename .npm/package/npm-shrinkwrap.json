@@ -1,0 +1,82 @@
+{
+  "dependencies": {
+    "cheerio": {
+      "version": "0.16.0",
+      "from": "cheerio@",
+      "dependencies": {
+        "CSSselect": {
+          "version": "0.4.1",
+          "from": "CSSselect@~0.4.0",
+          "dependencies": {
+            "CSSwhat": {
+              "version": "0.4.7",
+              "from": "CSSwhat@0.4"
+            },
+            "domutils": {
+              "version": "1.4.3",
+              "from": "domutils@1.4",
+              "dependencies": {
+                "domelementtype": {
+                  "version": "1.1.1",
+                  "from": "domelementtype@1"
+                }
+              }
+            }
+          }
+        },
+        "entities": {
+          "version": "1.1.1",
+          "from": "entities@~1.1.1"
+        },
+        "htmlparser2": {
+          "version": "3.7.2",
+          "from": "htmlparser2@~3.7.0",
+          "dependencies": {
+            "domhandler": {
+              "version": "2.2.0",
+              "from": "domhandler@2.2"
+            },
+            "domutils": {
+              "version": "1.5.0",
+              "from": "domutils@1.5"
+            },
+            "domelementtype": {
+              "version": "1.1.1",
+              "from": "domelementtype@1"
+            },
+            "readable-stream": {
+              "version": "1.1.13-1",
+              "from": "readable-stream@1.1",
+              "dependencies": {
+                "core-util-is": {
+                  "version": "1.0.1",
+                  "from": "core-util-is@~1.0.0"
+                },
+                "isarray": {
+                  "version": "0.0.1",
+                  "from": "isarray@0.0.1"
+                },
+                "string_decoder": {
+                  "version": "0.10.25-1",
+                  "from": "string_decoder@~0.10.x"
+                },
+                "inherits": {
+                  "version": "2.0.1",
+                  "from": "inherits@~2.0.1"
+                }
+              }
+            },
+            "entities": {
+              "version": "1.0.0",
+              "from": "entities@1.0"
+            }
+          }
+        },
+        "lodash": {
+          "version": "2.4.1",
+          "from": "lodash@~2.4.1"
+        }
+      }
+    }
+  }
+}
