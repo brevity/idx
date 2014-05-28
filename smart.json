@@ -8,6 +8,8 @@
   "packages": {
     "reactive-table": {},
     "collection-hooks": {},
-    "emitter": {}
+    "emitter": {},
+    "iron-router": {},
+    "bootstrap-3": {}
   }
 }
